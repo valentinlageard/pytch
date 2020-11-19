@@ -44,8 +44,7 @@ void process_sine(float buffer[], float sr, int buffer_size, sine_state *state)
 
 // Bandlimited wavetable oscillator
 
-/*
-osc_state init_osc(float *freq, float *phase, float **matrix, int table_size_x, int table_size_y)
+osc_state init_osc(stream freq, stream phase, float **matrix, int table_size_x, int table_size_y)
 {
     osc_state state;
     state.freq = freq;
@@ -59,21 +58,22 @@ osc_state init_osc(float *freq, float *phase, float **matrix, int table_size_x, 
 
 void process_osc(float buffer[], float sr, int buffer_size, osc_state *state)
 {
+    // TODO : There is an audio glitch when freq = 0 !
+    float freq, phase;
     float phase_increment, sample_fid, freq_fid;
     int freq_id0, freq_id1, freq_sign;
     float fx_sx, fx_sy, fy_sx, fy_sy;
     float interp_f0, interp_f1;
     
-    // Determine phase increment at control rate for now !
-    phase_increment = state->freq / sr;
-    freq_sign = state->freq > 0 ? 1 : 0; 
     for (int i = 0; i < buffer_size; i++)
     {
-        // TODO : There is an audio glitch when freq = 0 !
-        // If freq or phase is an array, get freq and phase for this iteration
+        freq = state->freq.isarray ? state->freq.array[i] : state->freq.value;
+        phase = state->phase.isarray ? state->phase.array[i] : state->phase.value;
+        phase_increment = freq / sr;
+        freq_sign = freq > 0 ? 1 : 0; 
         // Get sample float id and frequency float id
-        sample_fid = truemodf(state->curphase + state->phase, 1.0) * ((float)(state->table_size_x) - 1.0);
-        freq_fid = 12.0 * log2f(fabsf(state->freq) / 440.0) + 48.0;
+        sample_fid = truemodf(state->curphase + phase, 1.0) * ((float)(state->table_size_x) - 1.0);
+        freq_fid = 12.0 * log2f(fabsf(freq) / 440.0) + 48.0;
         freq_id0 = (int)fmaxf(fminf(freq_fid, 87), 0);
         freq_id1 = (int)fmaxf(fminf(freq_fid + 1, 87), 0);
         // Get the four data points. Be wary to fold back positively and negatively.
@@ -90,4 +90,3 @@ void process_osc(float buffer[], float sr, int buffer_size, osc_state *state)
         state->curphase = truemodf(state->curphase + phase_increment, 1.0);
     }
 }
-*/

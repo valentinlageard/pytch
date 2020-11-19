@@ -95,10 +95,12 @@ cdef class Sine:
         return buffer[0]
     
     def set_freq(self, freq):
-        self.state.freq = to_stream(freq)
+        self.freq_stream = to_stream(freq)
+        self.state.freq = self.freq_stream
     
     def set_phase(self, phase):
-        self.state.phase = to_stream(phase)
+        self.phase_stream = to_stream(phase)
+        self.state.phase = self.phase_stream
     
     def set_sr(self, sr):
         self.sr = sr
@@ -108,20 +110,22 @@ cdef class Sine:
 
 # Basic shapes bandlimited thruzero wavetable oscillator
 
-'''
-
 cdef class Osc:
+    cdef s.stream freq_stream
+    cdef s.stream phase_stream
     cdef source.osc_state state
     cdef float sr
     cdef int buffer_size
     def __init__(self, freq=440, phase=0, shape="sine", sr=44100, buffer_size=128):
+        self.freq_stream = to_stream(freq)
+        self.phase_stream = to_stream(phase)
         cdef np.ndarray[float, ndim=2, mode="c"] matrix = self.generate_matrix(shape)
         cdef float** matrix_pointers = <float **>PyMem_Malloc(88 * sizeof(float*))
         if not matrix_pointers:
             raise MemoryError
         for i in range(88): 
             matrix_pointers[i] = &matrix[i, 0]
-        self.state = source.init_osc(freq, phase, &matrix_pointers[0], 2048, 88)
+        self.state = source.init_osc(self.freq_stream, self.phase_stream, &matrix_pointers[0], 2048, 88)
         # When should I free the matrix pointers with PyMem_Free ?
         # I should keep it stored as an attribute and delete when the ugen is destroyed
         self.sr = sr
@@ -150,15 +154,15 @@ cdef class Osc:
             return matrix_gen(saw_gen)
     
     def set_freq(self, freq):
-        self.state.freq = freq
+        self.freq_stream = to_stream(freq)
+        self.state.freq = self.freq_stream
     
     def set_phase(self, phase):
-        self.state.phase = phase
+        self.phase_stream = to_stream(phase)
+        self.state.phase = self.phase_stream
     
     def set_sr(self, sr):
         self.sr = sr
     
     def set_buffer_size(self, buffer_size):
         self.buffer_size = buffer_size
-
-'''
